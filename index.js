@@ -1,37 +1,29 @@
 let video, faceapi, detections = [];
+let topEmotion = '', topProb = 0;
 
 const OPTIONS = {
-  withLandmarks: false,
   withExpressions: true,
-  withDescriptors: false,
+  detectionType: 'tiny_face_detector'
 };
 
 function setup() {
   createCanvas(640, 480);
-  video = createCapture(VIDEO);
-  video.size(width, height);
-  video.hide();
+  video = createCapture(VIDEO).size(width, height).hide();
 
-  // 네 번째 인수: 모델 경로
-  faceapi = ml5.faceApi(video, OPTIONS, modelReady, 'models');
+  // ▶ models 경로 제거: 이 한 줄이면 CDN에서 필요한 모델만 알아서 내려받습니다.
+  faceapi = ml5.faceApi(video, OPTIONS, modelReady);
 }
+
 function modelReady() {
-  console.log('ssd loaded 👉',
-    faceapi.faceapi.nets.ssdMobilenetv1.isLoaded);
-  console.log('expr loaded 👉',
-    faceapi.faceapi.nets.faceExpressionNet.isLoaded);
-
-  if (faceapi.faceapi.nets.ssdMobilenetv1.isLoaded &&
-    faceapi.faceapi.nets.faceExpressionNet.isLoaded) {
-    faceapi.detect(gotResults);
-  } else {
-    console.error('🚫 가중치 미로드 - bin 파일 경로/용량 확인');
-  }
+  console.log('✅ 모델 로드 완료 - 감정 분석 시작');
+  faceapi.detect(gotResults);
 }
-
 
 function gotResults(err, result) {
-  if (err) { console.error(err); return; }
+  if (err) {
+    console.error(err);
+    return;
+  }
   detections = result;
   faceapi.detect(gotResults);
 }
@@ -39,20 +31,32 @@ function gotResults(err, result) {
 function draw() {
   image(video, 0, 0);
 
-  if (detections && detections.length > 0) {
-    detections.forEach(det => {
-      const { expressions, alignedRect: { _box: b } } = det;
-      noFill(); stroke(0, 200, 255); strokeWeight(2);
-      rect(b._x, b._y, b._width, b._height);
+  if (!detections.length) return;
 
-      const sorted = Object.entries(expressions).sort((a, b) => b[1] - a[1]);
-      fill(50, 50, 50, 180); noStroke();
-      rect(b._x, b._y - 20, 160, sorted.length * 18 + 10);
+  const det = detections[0];
+  const box = det.alignedRect._box;
+  // 파란 박스
+  noFill();
+  stroke(0, 200, 255);
+  strokeWeight(2);
+  rect(box._x, box._y, box._width, box._height);
 
-      fill(255); textSize(14); textAlign(LEFT);
-      sorted.forEach(([emo, p], i) => {
-        text(`${emo}: ${nf(p, 1, 4)}`, b._x + 5, b._y + i * 18 - 2);
-      });
-    });
+  const expr = det.expressions;
+  if (expr) {
+    // [감정,확률] 배열로 만든 뒤 내림차순 정렬
+    const [emotion, prob] = Object
+      .entries(expr)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    noStroke();
+    fill(255);
+    textSize(16);
+    textAlign(LEFT, BOTTOM);
+    // 박스 위 5px 지점에 출력
+    text(
+      `${emotion}: ${nf(prob * 100, 1, 0)}%`,
+      box._x,
+      box._y - 5
+    );
   }
 }

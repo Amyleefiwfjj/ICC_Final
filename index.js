@@ -10,7 +10,6 @@ function setup() {
   createCanvas(640, 480);
   video = createCapture(VIDEO).size(width, height).hide();
 
-  // ▶ models 경로 제거: 이 한 줄이면 CDN에서 필요한 모델만 알아서 내려받습니다.
   faceapi = ml5.faceApi(video, OPTIONS, modelReady);
 }
 

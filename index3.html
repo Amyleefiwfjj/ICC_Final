@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Typography Media Art</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/addons/p5.dom.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+
+        input {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <input id="textInput" placeholder="Type your text and press Enter" />
+    <script>
+        let displayedText = "TYPOGRAPHY";
+        let font;
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            textFont('Roboto Condensed');
+            textStyle(BOLD);
+            textAlign(CENTER, CENTER);
+
+            const input = select('#textInput');
+            input.value(displayedText);
+            input.changed(() => {
+                displayedText = input.value() || ' ';
+            });
+        }
+
+        function draw() {
+            background(0);
+            let cols = Math.ceil(width / 80);
+            let rows = Math.ceil(height / 80);
+            let cellW = width / cols;
+            let cellH = height / rows;
+            let chars = displayedText.split('');
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    let idx = (i * cols + j) % chars.length;
+                    let ch = chars[idx];
+                    let x = j * cellW + cellW / 2;
+                    let y = i * cellH + cellH / 2;
+
+                    let d = dist(mouseX, mouseY, x, y);
+                    let maxD = dist(0, 0, width, height);
+                    let sz = map(d, 0, maxD, 64, 16);
+                    let alpha = map(d, 0, maxD, 255, 50);
+
+                    push();
+                    translate(x, y);
+                    let angle = noise(i * 0.1, j * 0.1, frameCount * 0.005) * TWO_PI;
+                    rotate(angle);
+                    fill(255, alpha);
+                    textSize(sz);
+                    text(ch, 0, 0);
+                    pop();
+                }
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+
+</html>

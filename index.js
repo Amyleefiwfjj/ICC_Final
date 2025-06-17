@@ -1,4 +1,4 @@
-const MODEL_URL = '/models';   // GitHub Pages 루트 기준
+const MODEL_URL = './models';   // GitHub Pages 루트 기준
 
 let video;
 let detections = [];

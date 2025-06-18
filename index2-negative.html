@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Perlin Noise Exploding Text</title>
+    <title>Break all the things that make you feel bad</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <style>
         body {
@@ -142,7 +142,9 @@
             text("Break it!!", width - 20, 20);  // 오른쪽 위에서 20px 여백
         }
 
-        function mouseClicked() {
+        function mouseClicked(event) {
+            if (document.activeElement.tagName === 'INPUT') return;
+
             if (isExploding) return;
             if (clickCount >= 3) return;  // 최대 3단계
 

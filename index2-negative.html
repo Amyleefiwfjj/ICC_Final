@@ -1,24 +1,70 @@
-<!-- index2-positive.html 예시 -->
 <!DOCTYPE html>
-<html lang="ko">
+<html>
+
 <head>
-  <meta charset="UTF-8">
-  <title>Positive Emotion</title>
-  <style>
-    body { background:#fffae6; display:flex; justify-content:center;
-           align-items:center; height:100vh; font-size:3rem; }
-  </style>
+    <meta charset="utf-8">
+    <title>Circle-Filled Text</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
 </head>
-<body>You are the most important.</body>
 
-<script>
-  // 2초 동안 페이지를 보여준 후 공통 페이지로
-  setTimeout(() => {
-    window.location.href = './index3.html';
-  }, 10000);
+<body>
+    <script>
+        const emo = sessionStorage.getItem('userEmotion');
+        const displayEmotion = emo ? emo.toLowerCase() : 'upset';
 
-  // 필요하면 1단계에서 넘긴 감정 텍스트 활용
-  const emo = sessionStorage.getItem('userEmotion');
-  console.log('dominantEmotion =', emo);
-</script>
+        // 2) 템플릿 리터럴 사용
+        const questionText = `What makes you ${displayEmotion}?`;
+        document.getElementById('question').textContent = questionText;
+
+        // 3) 한 번 쓰고 삭제
+        sessionStorage.removeItem('userEmotion');
+
+        let userAnswer;
+        let pg;  // offscreen graphics
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            pixelDensity(1);
+
+            // 4) 사용자 답변 가져오기
+            userAnswer = sessionStorage.getItem('userAnswer') || '';
+
+            // offscreen graphics에 텍스트 그리기
+            pg = createGraphics(width, height);
+            pg.pixelDensity(1);
+            pg.background(255);
+            pg.textAlign(CENTER, CENTER);
+            pg.textSize(100);
+            pg.textFont('Arial');
+            pg.fill(0);
+            pg.text(userAnswer, width / 2, height / 2);
+            pg.loadPixels();
+
+            noLoop();
+        }
+
+        function draw() {
+            background(255);
+            const step = 15;  // 원 간격 및 크기 조절
+
+            noStroke();
+            fill(0);
+            for (let x = 0; x < width; x += step) {
+                for (let y = 0; y < height; y += step) {
+                    // 5) idx 계산을 코드로
+                    const idx = 4 * (y * width + x) + 3;
+                    if (pg.pixels[idx] > 128) {
+                        circle(x, y, step * 0.8);
+                    }
+                }
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            // 리사이즈 후 다시 텍스트를 그려야 하므로
+            setup();
+        }    </script>
+</body>
+
 </html>

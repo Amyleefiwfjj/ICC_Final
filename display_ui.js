@@ -1,12 +1,10 @@
 let black, white, gray, dark_gray, px, UIx_off;
 let level = 0; lines = 0, score = 0;
-let messageQueue = ["지금 플레이하시고 계신 게임은 감정 테트리스입니다", "You are now playing Emotional Tetris.",
-    "테트리스 게임에서 블록들이 쌓이듯이 ", "Just like blocks stack up in a Tetris game,",
-    "우리의 감정도 쌓이곤 합니다", "our emotions also tend to pile up over time.",
-    "그럴 때 감정을 단순히 쌓아두지 않고 face하는 것이 중요하다고 생각합니다",
-    "But instead of letting them accumulate,it's important to face them.",
-    "테트리스의 한 줄이 다 차면 없어지듯, ", "In Tetris, when a full line is completed, it disappears—",
-    "우리도 감정을 쌓아두지만 않고 face하는건 어떨까요?", "what if we try facing our emotions?"
+let messageQueue = [];
+let rawMessages = [               // ② 텍스트만 일단 모아두기
+    "You are now playing Emotional Tetris.", "", "Just like blocks stack in a game,", "our emotions also pile up over time.", '',
+    "But instead of accumulating all of them", "it's important to face them.", "", "Like flushing blocks in Tetris",
+    "why won't we try facing our emotions "
 ];
 let startTime;
 function setColors() {
@@ -17,21 +15,19 @@ function setColors() {
     dark_gray = color(108, 115, 85);
 }
 function scheduleMessages() {
-    // 표시할 메시지 목록(text, x, y, delay(ms))
-    const msgs = [
-        { text: "Good Luck!", x: UIx_off + px * 2, y: boxSide * 16, delay: 0 },
-        { text: "Ready?", x: UIx_off + px * 2, y: boxSide * 18, delay: 1000 },
-        { text: "Go!", x: UIx_off + px * 2, y: boxSide * 20, delay: 2000 }
-    ];
-    msgs.forEach(m => {
+    let baseX = (x_Off + 1) * boxSide + px * 2 - 10;
+    let baseY = height * 0.05;
+    let lineH = px * 6;
+    rawMessages.forEach((txt, i) => {
         messageQueue.push({
-            text: m.text,
-            x: m.x,
-            y: m.y,
-            showAt: startTime + m.delay
+            text: txt,
+            x: baseX,
+            y: baseY + i * lineH,
+            showAt: startTime + i * 1000 + 5000
         });
     });
 }
+
 
 function displayUI() {
 
@@ -39,7 +35,7 @@ function displayUI() {
     push();
     textFont(RetroFont);
     textSize(px * 4);
-    fill(white);
+    fill(255);
     textAlign(LEFT, TOP);
     displayMessages();
     pop();
@@ -51,8 +47,9 @@ function displayMessages() {
             push();
             textFont(RetroFont);
             textSize(px * 4);
-            fill(white);
+            fill(0);
             textAlign(LEFT, TOP);
+            let wrapW = width * 0.23;
             text(m.text, m.x, m.y);
             pop();
         }

@@ -28,13 +28,12 @@ function setup() {
     noStroke(40);
     startTime = millis();
     scheduleMessages();
+    console.log(messageQueue);
+
 }
 
 function draw() {
-
-    //background(black)
     if (gameStart) {
-
         display_grid();
         displayUI();
         //display_block(currentBlock,(6+leftOff)*boxSide,(tempTopOff-1)*boxSide,"temp",true)
@@ -47,10 +46,27 @@ function draw() {
             checkRow();
             Currentspeed = speed;
         }
-    }
-    else {
+        if (gameOver) {
+            push();
+            textFont(RetroFont);
+            textSize(px * 10);           // 크기는 px 단위로 조정
+            fill(255, 0, 0, 200);        // 반투명 빨강
+            textAlign(CENTER, CENTER);
+            text("Game Over!", width / 2, height / 2);
+            textSize(px * 4);
+            fill(255, 255, 200);        // 반투명 빨강
+            text("But in real life, you can do it!", width / 2, height / 2 + 50);
+
+            pop();
+
+            noLoop();                    // 텍스트가 고정되게 하고 싶으면 루프를 멈춥니다.
+        }
+
+    } else {
         titleScreen();
     }
+
+    displayMessages();
 
 }
 function titleScreen() {

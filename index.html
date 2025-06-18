@@ -44,18 +44,6 @@
         });
     }
 
-
-    // async function detectLoop() {
-    //   const options = new faceapi.TinyFaceDetectorOptions({
-    //     inputSize: 224,
-    //     scoreThreshold: 0.1
-    //   });
-    //   detections = await faceapi
-    //     .detectAllFaces(video.elt, options)
-    //     .withFaceExpressions();   // 표정까지
-    //   setTimeout(detectLoop, 150);  // ≈ 6 fps (원하면 조정)
-    // }
-
     async function detectLoop() {
         const options = new faceapi.TinyFaceDetectorOptions({
             inputSize: 224,        // 기본 512보다 작게 해도 OK

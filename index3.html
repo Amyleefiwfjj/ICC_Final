@@ -30,9 +30,9 @@
 
 <body>
     <script>
-        let displayedText = "FACEYOURFEELINGS";
         let font;
-
+        let displayedText = "Facethefeelings";
+        let centralFontSize = 48;
         function setup() {
             createCanvas(windowWidth, windowHeight);
             textFont('Roboto Condensed');
@@ -42,36 +42,67 @@
         }
 
         function draw() {
-            background(0);
-            let cols = Math.ceil(width / 80);
-            let rows = Math.ceil(height / 80);
+            background(10);
+
+            // 그리드 텍스트 + Perlin wave
+            let cols = ceil(width / 80);
+            let rows = ceil(height / 80);
             let cellW = width / cols;
             let cellH = height / rows;
             let chars = displayedText.split('');
+            let maxD = dist(0, 0, width, height);
 
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
                     let idx = (i * cols + j) % chars.length;
                     let ch = chars[idx];
-                    let x = j * cellW + cellW / 2;
-                    let y = i * cellH + cellH / 2;
 
+                    // 기본 위치
+                    let baseX = j * cellW + cellW / 2;
+                    let baseY = i * cellH + cellH / 2;
+
+                    // Perlin noise 오프셋 계산
+                    // 마우스 x,y 위치를 노이즈 입력에 사용해 물결 움직임 민감도 조절
+                    let n = noise(
+                        i * 0.1 + mouseX * 0.002,
+                        j * 0.1 + mouseY * 0.002,
+                        frameCount * 0.01
+                    );
+                    // -1 ~ 1 로 매핑
+                    let offset = map(n, 0, 1, -cellH * 0.3, cellH * 0.3);
+                    let x = baseX;
+                    let y = baseY + offset;
+
+                    // 마우스 거리 기반 크기·투명도·색상
                     let d = dist(mouseX, mouseY, x, y);
-                    let maxD = dist(0, 0, width, height);
-                    let sz = map(d, 0, maxD, 64, 16);
-                    let alpha = map(d, 0, maxD, 255, 50);
+                    let t = map(d, 0, maxD, 0, 1);
+                    let c = lerpColor(color(120, 50, 50, 200), color(50, 100, 200, 100), t);
+                    fill(c);
+                    textSize(lerp(64, 16, t));
 
+                    // 회전 각도
                     push();
                     translate(x, y);
-                    let angle = noise(i * 0.1, j * 0.1, frameCount * 0.005) * TWO_PI;
+                    let angle = noise(i * 0.15, j * 0.15, frameCount * 0.01) * TWO_PI;
+                    angle *= map(mouseX, 0, width, 0.2, 1.5);
                     rotate(angle);
-                    fill(255, alpha);
-                    textSize(sz);
                     text(ch, 0, 0);
                     pop();
                 }
             }
-        } function mouseClicked() {
+
+            // 중앙 메시지 (펄스 애니메이션 유지)
+            let pulse = sin(frameCount * 0.05) * 0.2 + 1;
+            push();
+            translate(width / 2, height / 2);
+            textSize(centralFontSize * pulse);
+            fill(255, map(pulse, 0.8, 1.2, 150, 255));
+            textStyle(BOLD);
+            text("Face the feelings", 0, 0);
+            
+            pop();
+        }
+        function mouseClicked() {
             // 브라우저 주소를 바꿔서 tetris.html 로 이동
             window.location.href = "./tetris.html";
         }

@@ -1,6 +1,6 @@
 let i_img, j_img, l_img, o_img, s_img, t_img, z_img;
 let x_Off = 1, y_off = 2
-let gameStart = false;
+let gameStart = true;
 let themeSongPlay = false;
 let gameOver = false
 let boxSide = null;
@@ -26,11 +26,13 @@ function setup() {
     setTempBlock();
     setColors();
     noStroke(40);
+    startTime = millis();
+    scheduleMessages();
 }
 
 function draw() {
 
-    background(black)
+    //background(black)
     if (gameStart) {
 
         display_grid();
@@ -97,7 +99,7 @@ function display_next_set_of_block() {
 }
 
 function display_hold_block() {
-    rect(boxSide, 2 * boxSide, 5 * boxSide, 4 * boxSide);
+    //rect(boxSide, 2 * boxSide, 5 * boxSide, 4 * boxSide);
     if (holdBlock.length > 0)
         display_block(holdBlock[0], 2 * boxSide, 4 * boxSide, holdBlock[1]);
 

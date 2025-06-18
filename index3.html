@@ -29,9 +29,8 @@
 </head>
 
 <body>
-    <input id="textInput" placeholder="Type your text and press Enter" />
     <script>
-        let displayedText = "TYPOGRAPHY";
+        let displayedText = "FACEYOURFEELINGS";
         let font;
 
         function setup() {
@@ -40,11 +39,6 @@
             textStyle(BOLD);
             textAlign(CENTER, CENTER);
 
-            const input = select('#textInput');
-            input.value(displayedText);
-            input.changed(() => {
-                displayedText = input.value() || ' ';
-            });
         }
 
         function draw() {
@@ -77,6 +71,9 @@
                     pop();
                 }
             }
+        } function mouseClicked() {
+            // 브라우저 주소를 바꿔서 tetris.html 로 이동
+            window.location.href = "./tetris.html";
         }
 
         function windowResized() {

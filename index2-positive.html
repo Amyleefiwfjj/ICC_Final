@@ -1,24 +1,290 @@
 <!-- index2-positive.html 예시 -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Positive Emotion</title>
-  <style>
-    body { background:#fffae6; display:flex; justify-content:center;
-           align-items:center; height:100vh; font-size:3rem; }
-  </style>
+    <meta charset="UTF-8">
+    <title>I like you smiling</title>
+    <style>
+        body {
+            background: #fffae6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 3rem;
+        }
+    </style>
 </head>
-<body>😊 기분이 좋아 보이시네요!</body>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
 
 <script>
-  // 2초 동안 페이지를 보여준 후 공통 페이지로
-  setTimeout(() => {
-    window.location.href = './index3.html';
-  }, 2000);
+    let planted = [];
+    let pickImgs = [];         // 10개의 PNG
+    let held = null;
+    let lastPinchTime = 0;
+    let prevPalmOpen = false;
+    const emo = sessionStorage.getItem('userEmotion');
+    console.log('dominantEmotion =', emo);
+    /* ── global ────────────────────────────────────────────────────────── */
+    let video;
+    let detections = [];
+    let handpose, predictions = [];
+    const MODEL_URL = './models';        // tiny-face-detector files
+    let prevIx = 0, prevIy = 0;
+    const flowers = [];                  // 8 Flower instances
+    const PETALS = 10;                   // ellipses per flower
+    const BASE_SIZE = 70;                // petal length
+    const NUM_FLOWERS = 3;
+    /* ── Flower class ──────────────────────────────────────────────────── */
+    class Flower {
+        constructor(angle) {
+            this.angle = angle;
+            this.seed = random(1000);
+            this.scale = random(0.8, 1.2);
+        }
 
-  // 필요하면 1단계에서 넘긴 감정 텍스트 활용
-  const emo = sessionStorage.getItem('userEmotion');
-  console.log('dominantEmotion =', emo);
+        update(cx, cy, baseR) {
+            const t = frameCount * 0.01;
+            const wig = 20 * (noise(this.seed, t) - 0.5);
+            this.x = cx + (baseR + wig) * cos(this.angle);
+            this.y = cy + (baseR + wig) * sin(this.angle);
+            this.rot = this.angle + 0.3 * (noise(this.seed + 5, t) - 0.5);
+        }
+
+        draw() {
+            push();
+            translate(this.x, this.y);
+            rotate(this.rot);
+
+            // Perlin으로 색상 설정
+            const hue = map(noise(this.seed, frameCount * 0.005), 0, 1, 300, 360);
+            const sat = map(noise(this.seed + 10, frameCount * 0.005), 0, 1, 60, 100);
+            const bri = map(noise(this.seed + 20, frameCount * 0.005), 0, 1, 80, 100);
+            colorMode(HSB, 360, 100, 100, 100);
+
+            noStroke();
+            // 바깥 레이어 petals
+            this._drawPetalLayer(12, BASE_SIZE * this.scale * 1.2, hue, sat, bri, 0.6);
+            // 안쪽 레이어 petals
+            this._drawPetalLayer(8, BASE_SIZE * this.scale * 0.8, hue, sat, bri, 0.8);
+
+            // 꽃 중심
+            fill((hue + 180) % 360, sat / 2, bri, 100);
+            ellipse(0, 0, BASE_SIZE * this.scale * 0.5);
+
+            pop();
+            colorMode(RGB);
+        }
+
+        _drawPetalLayer(count, len, h, s, b, alpha) {
+            for (let i = 0; i < count; i++) {
+                const ang = TWO_PI * i / count;
+                push();
+                rotate(ang);
+                fill(h, s, b, alpha * 100);
+                beginShape();
+                vertex(0, 0);
+                // 부드러운 꽃잎 곡선
+                bezierVertex(len * 0.2, -len * 0.3, len * 0.8, -len * 0.3, len, 0);
+                bezierVertex(len * 0.8, len * 0.3, len * 0.2, len * 0.3, 0, 0);
+                endShape(CLOSE);
+                pop();
+            }
+        }
+    }
+
+    /* ── preload: load model ───────────────────────────────────────────── */
+    async function preload() {
+        for (let i = 1; i <= 10; i++) {
+            pickImgs.push(loadImage(`assets/${i}.png`));
+        }
+        font = loadFont('assets/VIVALDII.TTF');
+
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    }
+
+    /* ── setup ─────────────────────────────────────────────────────────── */
+    function setup() {
+        createCanvas(windowWidth, windowHeight);
+
+        // setup() 안에서
+        video = createCapture({
+            video: {
+                facingMode: "user",
+                width: 640,
+                height: 480,      // 기본 320×240보다 2배 이상 높여서 디테일 확보
+                frameRate: 30     // fps 올리기
+            }
+        }, () => {
+            video.size(width, height);
+            video.hide();
+            detectLoop();
+        });
+
+
+        for (let i = 0; i < 3; i++) flowers.push(new Flower(PI * i / 3));
+        handpose = ml5.handpose(video.elt, () => console.log('Handpose ready'));
+        handpose.on('predict', results => {
+            if (results[0]?.handInViewConfidence > 0.8) {
+                predictions = results;
+            } else {
+                predictions = [];
+            }
+        });
+        // 예: setup() 맨 뒤에 추가
+        for (let i = 0; i < 30; i++) {
+            planted.push({
+                x: random(width),                 // 랜덤 X
+                y: random(height),                // 랜덤 Y
+                size: random(5, 20),              // 애니메이션 시작 크기 (5~20 사이)
+                targetSize: random(50, 100),      // 최종 꽃 크기 (50~100 사이)
+                blooming: true                    // 즉시 피기
+            });
+        }
+
+    }
+    /* ── face detection loop (≈8 fps) ──────────────────────────────────── */
+    async function detectLoop() {
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
+        detections = await faceapi.detectAllFaces(video.elt, opts);
+        setTimeout(detectLoop, 125);
+    }
+
+    function draw() {
+        let pinchDist = null;
+        let palmOpen = false;
+        let ix = 0, iy = 0;   // 검지 끝 좌표
+        let tx = 0, ty = 0;   // 엄지 끝 좌표
+
+        push();
+        translate(width, 0);
+        scale(-1, 1);
+
+        // 1) 비디오 프레임 출력
+        image(video, 0, 0, width, height);
+
+        // 3) 손 제스처 처리 + pick/drop + 시각화
+        if (predictions.length > 0) {
+            const lm = predictions[0].landmarks;
+            const sx = width / video.elt.videoWidth;
+            const sy = height / video.elt.videoHeight;
+
+            // raw 좌표
+            const rawIx = lm[8][0] * sx;
+            const rawIy = lm[8][1] * sy;
+            const rawTx = lm[4][0] * sx;
+            const rawTy = lm[4][1] * sy;
+            const px = lm[20][0] * sx;
+            const py = lm[20][1] * sy;
+
+            // 스무딩
+            ix = lerp(prevIx, rawIx, 0.4);
+            iy = lerp(prevIy, rawIy, 0.4);
+            tx = rawTx;
+            ty = rawTy;
+            prevIx = ix; prevIy = iy;
+
+            // 거리 계산
+            pinchDist = dist(ix, iy, tx, ty);
+            palmOpen = dist(tx, ty, px, py) > 120;
+
+            const wrist = lm[0];
+            const handSize = dist(wrist[0] * sx, wrist[1] * sy, px, py);
+            const pinchThreshold = handSize * 0.3;
+            const releaseThreshold = handSize * 0.5;
+
+            // 5) Pinch 시작 → pick up
+            if (held === null && pinchDist < pinchThreshold && millis() - (lastPinchTime || 0) > 500) {
+                let bestIdx = -1, bestD = 80;
+                planted.forEach((f, i) => {
+                    const d = dist(ix, iy, f.x, f.y);
+                    if (d < bestD) { bestD = d; bestIdx = i; }
+                });
+                if (bestIdx !== -1) {
+                    held = { img: random(pickImgs), size: 80 };
+                    planted.splice(bestIdx, 1);
+                    lastPinchTime = millis();
+                }
+            }
+
+            // 6) Pinch 풀림 → drop
+            if (held && pinchDist > releaseThreshold) {
+                planted.push({ x: ix, y: iy, size: held.size, blooming: true });
+                held = null;
+            }
+
+            // 시각화: 검지(빨강), 엄지(파랑)
+            push();
+            noStroke();
+            fill(255, 0, 0, 200); ellipse(ix, iy, 12, 12);
+            fill(0, 0, 255, 200); ellipse(tx, ty, 12, 12);
+            pop();
+        }
+
+        // 7) planted 드로잉
+        planted.forEach(f => {
+            if (f.blooming && f.size < f.targetSize) {
+                f.size = lerp(f.size, f.targetSize, 0.1);
+                if (abs(f.size - f.targetSize) < 0.5) f.size = f.targetSize;
+            }
+            push();
+            translate(f.x, f.y);
+            noStroke();
+            fill(255, 150, 200, 200);
+            for (let i = 0; i < 6; i++) {
+                rotate(TWO_PI / 6);
+                ellipse(f.size / 2, 0, f.size, f.size * 0.5);
+            }
+            fill(255, 220, 100, 220);
+            ellipse(0, 0, f.size * 0.4);
+            pop();
+        });
+
+        // 8) held 아이템 드래그
+        if (held) {
+            push();
+            imageMode(CENTER);
+            image(held.img, ix, iy, held.size, held.size);
+            pop();
+        }
+
+        // 9) Palm Open → Bloom 트리거
+        if (palmOpen && !prevPalmOpen) {
+            planted.forEach(f => f.blooming = true);
+        }
+        prevPalmOpen = palmOpen;
+
+        pop(); // 미러 모드 해제
+        push();
+        resetMatrix();  // 미러(transform) 해제
+        textFont(font);
+        textAlign(RIGHT, TOP);
+        textSize(50);   // 원하는 크기로 조절
+        stroke(0);
+        fill(255);      // 흰색 글씨
+        text("I like you smiling", width - 20, 20);  // 오른쪽 위에서 20px 여백
+        noStroke();
+        fill(0);
+        textSize(30);
+        text("Show V first and pick the flowers", width - 20, 100);  // 오른쪽 위에서 20px 여백
+
+        pop();
+    }
+
+
+    /* ── responsive canvas ─────────────────────────────────────────────── */
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        if (video) video.size(width, height);
+    }
+    setTimeout(() => {
+        window.location.href = './index3.html';
+    }, 20000);
+
+
 </script>
+
 </html>

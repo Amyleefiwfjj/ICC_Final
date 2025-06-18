@@ -113,8 +113,7 @@
         // 1) 감정 그룹 매핑
         const GROUP_MAP = {
             positive: ['neutral', 'happy'],
-            negative: ['sad', 'angry', 'disgusted'],
-            fear: ['fearful', 'surprised']
+            negative: ['sad', 'angry', 'disgusted', 'fearful', 'surprised']
         };
 
         // 2) 그룹 이름 찾기
@@ -130,7 +129,6 @@
         const nextPage = {
             positive: 'index2-positive.html',
             negative: 'index2-negative.html',
-            fear: 'index2-fear.html'
         }[groupName];
 
         sessionStorage.setItem('userEmotion', dominantEmotion);

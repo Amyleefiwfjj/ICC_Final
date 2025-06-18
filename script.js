@@ -59,7 +59,8 @@ function draw() {
 
             pop();
 
-            noLoop();                    // 텍스트가 고정되게 하고 싶으면 루프를 멈춥니다.
+            noLoop();
+
         }
 
     } else {
@@ -69,6 +70,7 @@ function draw() {
     displayMessages();
 
 }
+
 function titleScreen() {
     push();
     image(title_screen_img, 0, 0, width, height);

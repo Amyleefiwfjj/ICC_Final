@@ -106,13 +106,37 @@
             box.x, box.y - 24);
     }
     function goNextPage() {
-        // Object.entries로 [emotion, count] 배열 목록 생성
+        // 최빈 감정 산출
         const dominantEmotion = Object.entries(emotionCounts)
-            .reduce((prev, cur) => cur[1] > prev[1] ? cur : prev)[0];
+            .reduce((p, c) => c[1] > p[1] ? c : p)[0];
+
+        // 1) 감정 그룹 매핑
+        const GROUP_MAP = {
+            positive: ['neutral', 'happy'],
+            negative: ['sad', 'angry', 'disgusted'],
+            fear: ['fearful', 'surprised']
+        };
+
+        // 2) 그룹 이름 찾기
+        let groupName = 'positive';           // fallback
+        for (const [g, list] of Object.entries(GROUP_MAP)) {
+            if (list.includes(dominantEmotion)) {
+                groupName = g;
+                break;
+            }
+        }
+
+        // 3) 페이지 이동
+        const nextPage = {
+            positive: 'index2-positive.html',
+            negative: 'index2-negative.html',
+            fear: 'index2-fear.html'
+        }[groupName];
 
         sessionStorage.setItem('userEmotion', dominantEmotion);
-        window.location.href = 'index2.html';
+        window.location.href = nextPage;
     }
+
 
 </script>
 </body>

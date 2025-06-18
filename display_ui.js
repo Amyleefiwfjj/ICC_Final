@@ -2,8 +2,8 @@ let black, white, gray, dark_gray, px, UIx_off;
 let level = 0; lines = 0, score = 0;
 let messageQueue = [];
 let rawMessages = [               // ② 텍스트만 일단 모아두기
-    "You are now playing Emotional Tetris.", "", "Just like blocks stack in a game,", "our emotions also pile up over time.", '',
-    "But instead of accumulating all of them", "it's important to face them.", "", "Like flushing blocks in Tetris",
+    "You are now playing Emotional Tetris.",  "Just like blocks stack in a game,", "our emotions also pile up over time.", "",
+    "But instead of accumulating all of them", "it's important to face them.",  "Like flushing blocks in Tetris",
     "why won't we try facing our emotions "
 ];
 let startTime;
@@ -16,14 +16,14 @@ function setColors() {
 }
 function scheduleMessages() {
     let baseX = (x_Off + 1) * boxSide + px * 2 - 10;
-    let baseY = height * 0.05;
+    let baseY = height * 0.05 - 20;
     let lineH = px * 6;
     rawMessages.forEach((txt, i) => {
         messageQueue.push({
             text: txt,
             x: baseX,
             y: baseY + i * lineH,
-            showAt: startTime + i * 1000 + 5000
+            showAt: startTime + i * 1400 + 5000
         });
     });
 }
@@ -46,7 +46,7 @@ function displayMessages() {
         if (now >= m.showAt) {
             push();
             textFont(RetroFont);
-            textSize(px * 4);
+            textSize(px * 4-8);
             fill(0);
             textAlign(LEFT, TOP);
             let wrapW = width * 0.23;

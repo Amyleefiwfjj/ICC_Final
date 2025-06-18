@@ -3,6 +3,62 @@
 
 <head>
     <meta charset="UTF-8" />
+    <title>Emotion Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin-top: 15vh;
+        }
+
+        .emotion {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+    <p>당신의 현재 감정은…</p>
+    <div id="emotion" class="emotion">loading…</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ① 저장된 감정 텍스트 가져오기
+            const emotion = sessionStorage.getItem('userEmotion');
+
+            // ② 존재 여부 확인 후 DOM에 반영
+            if (emotion) {
+                document.getElementById('emotion').textContent = emotion;
+
+                // 필요하다면 스타일·애니메이션 분기
+                // 예시: happy면 배경색을 변경
+                if (emotion === 'happy') {
+                    document.body.style.background = '#fffae6';
+                }
+            } else {
+                // 첫 페이지에서 값이 안 넘어온 경우 대비
+                document.getElementById('emotion').textContent = 'Unknown';
+                console.warn('userEmotion 값이 없습니다.');
+            }
+
+            // ③ 더 이상 필요 없으면 제거할 수도 있습니다.
+            // sessionStorage.removeItem('userEmotion');
+        });
+    </script>
+
+</body>
+
+</html>
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
     <title>Typography Media Art</title>
     <style>
         body {
@@ -263,4 +319,4 @@
     </script>
 </body>
 
-</html>
+</html> -->

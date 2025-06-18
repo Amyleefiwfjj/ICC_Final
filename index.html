@@ -17,18 +17,125 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.1/p5.min.js"></script>
     <script>
         let font;
-        let f = "How are you feeling right now?";
-        let s = "We'll be analyzing your facial expression through the webcam for the next 3 seconds";
-        let t = "Try not to think about the camera—just express how you truly feel in this moment.";
+        let zOff = 0;          // 시간에 따른 noise z-축(animate)
+        const scale = 118;      // 그리드 해상도(작을수록 세밀)
+        const speed = 0.01;
+        const LINES = [
+            "How do you feel right now?",
+            "We'll be analyzing your facial expression through the webcam for the next 3 seconds",
+            "Try not to think about the camera—just express how you truly feel in this moment."
+        ];
+
+        // 타이밍(ms)
+        const HOLD = 1000;   // 중앙·아래에서 머무르는 시간
+        const MOVE = 1000;   // 이동 시간
+
+        // 글자 크기
+        const INITIAL_SIZE = 200;  // 1번째 문장 시작 크기
+        const FINAL_SIZE = 50;  // 모든 문장의 최종 크기   (2·3번째는 처음부터 고정)
+
+        const GAP = 80;            // 최종 줄 간격
+
+        let t0;                    // 애니메이션 기준 시각
+
         function preload() {
             font = loadFont('assets/VIVALDII.TTF');
         }
+
         function setup() {
-            createCanvas(800, 600);
+            createCanvas(windowWidth, windowHeight);
             textFont(font);
             textAlign(CENTER, CENTER);
-
+            t0 = millis();
         }
+
+        function draw() {
+            colorMode(HSB, 360, 100, 100, 100);  // HSB 모드로 전환
+            const cols = floor(width / scale);
+            const rows = floor(height / scale);
+
+            const hueBase = map(mouseX, 0, width, 0, 360);  // 마우스 X → 색상 조정
+            const satBase = map(mouseY, 0, height, 40, 100); // 마우스 Y → 채도 조정
+
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const xOff = x * 0.1;
+                    const yOff = y * 0.1;
+                    const n = noise(xOff, yOff, zOff);        // 0 ~ 1
+                    const bri = n * 100;                      // 밝기 매핑
+
+                    // 색상은 base에서 ±20° 범위로 흔들리게
+                    const h = (hueBase + n * 40 - 20 + 360) % 360;
+                    fill(h, satBase, bri, 100);
+                    noStroke();
+                    rect(x * scale, y * scale, scale, scale);
+                }
+            }
+            zOff += speed;   // 시간 진행
+
+            colorMode(RGB); const now = millis() - t0;
+
+            /* ------------------------------------------------------------------ */
+            /*  각 문장을 개별 처리                                               */
+            /* ------------------------------------------------------------------ */
+            LINES.forEach((txt, idx) => {
+                const lineStart = idx * (HOLD + MOVE);   // 문장별 애니메이션 시작 시각
+                const dt = now - lineStart;
+                if (dt < 0) return;                      // 아직 등장 전이면 건너뜀
+
+                /* ------------------- Y 위치 계산 -------------------------------- */
+                let y, startY, targetY;
+
+                if (idx === 0) {
+                    // ① 첫 번째 문장: 중앙에서 시작 → 위쪽으로 이동
+                    startY = height / 2;
+                    targetY = height / 2 - GAP;
+                } else {
+                    // ② 두·세 번째 문장: 캔버스 아래에서 시작 → 지정 위치로 이동
+                    const extraOffset = 200;               // 화면 아래로 숨길 거리
+                    startY = height + extraOffset + (idx - 1) * GAP;
+                    targetY = height / 2 - GAP + idx * GAP + 20;
+                }
+
+                if (dt < HOLD) {
+                    y = startY;                            // HOLD 구간
+                } else if (dt < HOLD + MOVE) {
+                    const r = (dt - HOLD) / MOVE;          // 0~1
+                    y = lerp(startY, targetY, r);          // 이동 구간
+                } else {
+                    y = targetY;                           // 이동 완료
+                }
+
+                /* ------------------- 글자 크기 계산 ------------------------------ */
+                let sz;
+                if (idx === 0) {
+                    // 첫 번째 문장만 크기 변화
+                    if (dt < HOLD) {
+                        sz = INITIAL_SIZE;
+                    } else if (dt < HOLD + MOVE) {
+                        const r = (dt - HOLD) / MOVE;
+                        sz = lerp(INITIAL_SIZE, 100, r);
+                    } else {
+                        sz = 100;
+                    }
+                } else {
+                    sz = FINAL_SIZE;                       // 두·세 번째 문장은 고정 크기
+                }
+
+                /* ------------------- 화면 출력 ---------------------------------- */
+                fill(20, 20, 20, 245);
+                textSize(sz);
+                text(txt, width / 2, y);
+            });
+        }
+        function mouseClicked() {
+            window.location.href = "./index1.html";
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+
     </script>
 </body>
 

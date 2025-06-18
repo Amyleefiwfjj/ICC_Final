@@ -1,6 +1,13 @@
 let black, white, gray, dark_gray, px, UIx_off;
 let level = 0; lines = 0, score = 0;
-let messageQueue = [];
+let messageQueue = ["지금 플레이하시고 계신 게임은 감정 테트리스입니다", "You are now playing Emotional Tetris.",
+    "테트리스 게임에서 블록들이 쌓이듯이 ", "Just like blocks stack up in a Tetris game,",
+    "우리의 감정도 쌓이곤 합니다", "our emotions also tend to pile up over time.",
+    "그럴 때 감정을 단순히 쌓아두지 않고 face하는 것이 중요하다고 생각합니다",
+    "But instead of letting them accumulate,it's important to face them.",
+    "테트리스의 한 줄이 다 차면 없어지듯, ", "In Tetris, when a full line is completed, it disappears—",
+    "우리도 감정을 쌓아두지만 않고 face하는건 어떨까요?", "what if we try facing our emotions?"
+];
 let startTime;
 function setColors() {
     UIx_off = 13 * boxSide
@@ -35,7 +42,6 @@ function displayUI() {
     fill(white);
     textAlign(LEFT, TOP);
     displayMessages();
-    text("Good Luck!", UIx_off + px * 2, boxSide * 16);
     pop();
 }
 function displayMessages() {

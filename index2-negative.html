@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Live Circle-Filled Text</title>
+    <title>Perlin Noise Exploding Text</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <style>
         body {
@@ -29,36 +29,33 @@
 
 <body>
     <div id="ui">
-
-        <input id="answerInput" type="text" placeholder="What made you to feel that way?">
+        <input id="answerInput" type="text" placeholder="What made you feel that way?">
     </div>
     <div id="sketch-holder"></div>
 
     <script>
-        let pgMask;
-        let userAnswer = '';
+        let pgMask, userAnswer = '';
+        let particles = [];
+        let isExploding = false;
+        let clickCount = 0;           // 0→1→2→3 단계용
 
         function setup() {
-            // 캔버스 생성
             const canvas = createCanvas(windowWidth, windowHeight);
             canvas.parent('sketch-holder');
             textAlign(CENTER, CENTER);
             pixelDensity(1);
 
-            // 마스크용 그래픽
             pgMask = createGraphics(width, height);
             pgMask.pixelDensity(1);
 
-            // 입력창 이벤트
             select('#answerInput').input(e => {
                 userAnswer = e.target.value;
-                redraw();  // noLoop 상태에서 draw()를 한 번 호출
+                if (!isExploding) redraw();
             });
 
-            noLoop();  // 자동 루프 꺼두기
+            noLoop();
         }
 
-        // 텍스트 줄바꿈 헬퍼
         function wrapText(gfx, txt, maxW) {
             const words = txt.split(' ');
             let line = '', out = [];
@@ -74,9 +71,28 @@
         function draw() {
             background(255);
 
-            // 1) pgMask에 텍스트 그리기
-            const bigSize = 200;
-            const leading = bigSize * 1.1;
+            if (isExploding) {
+                // 폭발 중: 파티클 애니메이션
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= 4;
+                    noStroke();
+                    fill(0, p.alpha);
+                    circle(p.x, p.y, p.r * 2);
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+                // 모든 파티클이 사라지면 종료
+                if (particles.length === 0) {
+                    isExploding = false;
+                    noLoop();
+                }
+                return;
+            }
+
+            // 평상시: 텍스트 마스크 생성
+            const bigSize = 200, leading = bigSize * 1.1;
             pgMask.clear();
             pgMask.background(0);
             pgMask.fill(255);
@@ -87,20 +103,19 @@
 
             const wrapped = wrapText(pgMask, userAnswer, width * 0.9);
             pgMask.text(wrapped, width / 2, height / 2);
+            pgMask.loadPixels();
 
-            // 2) mask 픽셀 검사 → circle로 채우기
-            const smallSize = 20;
-            const rowStep = smallSize * 0.8;
-            const colStep = smallSize * 0.6;
-            const radius = Math.min(rowStep, colStep) * 0.5;
-
+            // grid 기반으로 circle 그리기
+            const small = 20;
+            const rowStep = small * 0.8;
+            const colStep = small * 0.6;
+            const radius = min(rowStep, colStep) * 0.5;
             noStroke();
             fill(0);
 
             for (let y = 0; y < height; y += rowStep) {
                 let inSeg = false, startX = 0, segs = [];
                 for (let x = 0; x < width; x++) {
-                    // 마스크 픽셀 읽기
                     if (pgMask.get(x, y)[0] > 128) {
                         if (!inSeg) { inSeg = true; startX = x; }
                     } else if (inSeg) {
@@ -110,7 +125,6 @@
                 }
                 if (inSeg) segs.push([startX, width - 1]);
 
-                // 분할된 구간마다 원 그리기
                 for (let [x0, x1] of segs) {
                     for (let x = x0; x <= x1; x += colStep) {
                         circle(x, y, radius * 2);
@@ -119,10 +133,46 @@
             }
         }
 
+        function mouseClicked() {
+            if (isExploding) return;
+            if (clickCount >= 3) return;  // 최대 3단계
+
+            clickCount++;
+            // 폭발 파티클 생성
+            particles = [];
+            const small = 20;
+            const rowStep = small * 0.8;
+            const colStep = small * 0.6;
+            const radius = min(rowStep, colStep) * 0.5;
+
+            // 퍼클린 노이즈 스케일
+            const noiseScale = 0.01;
+
+            for (let y = 0; y < height; y += rowStep) {
+                for (let x = 0; x < width; x += colStep) {
+                    if (pgMask.get(x, y)[0] > 128) {
+                        // noise에 따라 각도 생성
+                        const angle = noise(x * noiseScale, y * noiseScale, clickCount) * TWO_PI * 4;
+                        // 단계별 속도 세기: 1단계 작게, 3단계 크게
+                        const mag = map(clickCount, 1, 3, 1, 6);
+                        particles.push({
+                            x, y,
+                            vx: cos(angle) * random(0.5, mag),
+                            vy: sin(angle) * random(0.5, mag),
+                            r: radius,
+                            alpha: 255
+                        });
+                    }
+                }
+            }
+            isExploding = true;
+            loop();
+        }
+
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
             pgMask.resizeCanvas(width, height);
-            redraw();
+            if (!isExploding) redraw();
         }
     </script>
 </body>

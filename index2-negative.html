@@ -3,58 +3,117 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Circle-Filled Text</title>
+    <title>Live Circle-Filled Text</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        #answerInput {
+            font-size: 18px;
+            padding: 5px;
+            width: 300px;
+        }
+    </style>
 </head>
 
 <body>
+    <div id="ui">
+
+        <input id="answerInput" type="text" placeholder="What made you to feel that way?">
+    </div>
+    <div id="sketch-holder"></div>
+
     <script>
-        const emo = sessionStorage.getItem('userEmotion');
-        const displayEmotion = emo ? emo.toLowerCase() : 'upset';
-
-        // 2) 템플릿 리터럴 사용
-        const questionText = `What makes you ${displayEmotion}?`;
-        document.getElementById('question').textContent = questionText;
-
-        // 3) 한 번 쓰고 삭제
-        sessionStorage.removeItem('userEmotion');
-
-        let userAnswer;
-        let pg;  // offscreen graphics
+        let pgMask;
+        let userAnswer = '';
 
         function setup() {
-            createCanvas(windowWidth, windowHeight);
+            // 캔버스 생성
+            const canvas = createCanvas(windowWidth, windowHeight);
+            canvas.parent('sketch-holder');
+            textAlign(CENTER, CENTER);
             pixelDensity(1);
 
-            // 4) 사용자 답변 가져오기
-            userAnswer = sessionStorage.getItem('userAnswer') || '';
+            // 마스크용 그래픽
+            pgMask = createGraphics(width, height);
+            pgMask.pixelDensity(1);
 
-            // offscreen graphics에 텍스트 그리기
-            pg = createGraphics(width, height);
-            pg.pixelDensity(1);
-            pg.background(255);
-            pg.textAlign(CENTER, CENTER);
-            pg.textSize(100);
-            pg.textFont('Arial');
-            pg.fill(0);
-            pg.text(userAnswer, width / 2, height / 2);
-            pg.loadPixels();
+            // 입력창 이벤트
+            select('#answerInput').input(e => {
+                userAnswer = e.target.value;
+                redraw();  // noLoop 상태에서 draw()를 한 번 호출
+            });
 
-            noLoop();
+            noLoop();  // 자동 루프 꺼두기
+        }
+
+        // 텍스트 줄바꿈 헬퍼
+        function wrapText(gfx, txt, maxW) {
+            const words = txt.split(' ');
+            let line = '', out = [];
+            for (let w of words) {
+                const test = line ? line + ' ' + w : w;
+                if (gfx.textWidth(test) <= maxW) line = test;
+                else { out.push(line); line = w; }
+            }
+            out.push(line);
+            return out.join('\n');
         }
 
         function draw() {
             background(255);
-            const step = 15;  // 원 간격 및 크기 조절
+
+            // 1) pgMask에 텍스트 그리기
+            const bigSize = 200;
+            const leading = bigSize * 1.1;
+            pgMask.clear();
+            pgMask.background(0);
+            pgMask.fill(255);
+            pgMask.noStroke();
+            pgMask.textSize(bigSize);
+            pgMask.textAlign(CENTER, CENTER);
+            pgMask.textLeading(leading);
+
+            const wrapped = wrapText(pgMask, userAnswer, width * 0.9);
+            pgMask.text(wrapped, width / 2, height / 2);
+
+            // 2) mask 픽셀 검사 → circle로 채우기
+            const smallSize = 20;
+            const rowStep = smallSize * 0.8;
+            const colStep = smallSize * 0.6;
+            const radius = Math.min(rowStep, colStep) * 0.5;
 
             noStroke();
             fill(0);
-            for (let x = 0; x < width; x += step) {
-                for (let y = 0; y < height; y += step) {
-                    // 5) idx 계산을 코드로
-                    const idx = 4 * (y * width + x) + 3;
-                    if (pg.pixels[idx] > 128) {
-                        circle(x, y, step * 0.8);
+
+            for (let y = 0; y < height; y += rowStep) {
+                let inSeg = false, startX = 0, segs = [];
+                for (let x = 0; x < width; x++) {
+                    // 마스크 픽셀 읽기
+                    if (pgMask.get(x, y)[0] > 128) {
+                        if (!inSeg) { inSeg = true; startX = x; }
+                    } else if (inSeg) {
+                        segs.push([startX, x - 1]);
+                        inSeg = false;
+                    }
+                }
+                if (inSeg) segs.push([startX, width - 1]);
+
+                // 분할된 구간마다 원 그리기
+                for (let [x0, x1] of segs) {
+                    for (let x = x0; x <= x1; x += colStep) {
+                        circle(x, y, radius * 2);
                     }
                 }
             }
@@ -62,9 +121,10 @@
 
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
-            // 리사이즈 후 다시 텍스트를 그려야 하므로
-            setup();
-        }    </script>
+            pgMask.resizeCanvas(width, height);
+            redraw();
+        }
+    </script>
 </body>
 
 </html>
